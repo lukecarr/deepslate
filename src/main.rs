@@ -1,9 +1,9 @@
 use std::net::SocketAddr;
-use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::Arc;
+use std::sync::atomic::{AtomicUsize, Ordering};
 use tokio::io::copy_bidirectional;
 use tokio::net::{TcpListener, TcpStream};
-use tracing::{error, info};
+use tracing::{Instrument, error, info, info_span};
 
 /// Deepslate: L4 load balancer for Minecraft proxy server blue-green deployments
 ///
@@ -30,37 +30,43 @@ impl Deepslate {
     }
 
     /// Select the next upstream server using round-robin.
-    fn select_upstream(&self) -> &str {
-        let idx = self.connection_count.fetch_add(1, Ordering::SeqCst) % self.upstreams.len();
-        &self.upstreams[idx]
+    /// Returns (`session_id`, `upstream_addr`).
+    fn select_upstream(&self) -> (usize, &str) {
+        let idx = self.connection_count.fetch_add(1, Ordering::SeqCst);
+        (idx, &self.upstreams[idx % self.upstreams.len()])
     }
 
     /// Handle a single client connection.
     async fn handle_connection(&self, mut client: TcpStream, client_addr: SocketAddr) {
-        let upstream_addr = self.select_upstream();
+        let (session_id, upstream_addr) = self.select_upstream();
 
-        info!("{client_addr} -> routing to {upstream_addr}");
+        async {
+            let mut upstream = match TcpStream::connect(upstream_addr).await {
+                Ok(stream) => stream,
+                Err(e) => {
+                    error!(upstream = upstream_addr, "Failed to connect: {e}");
+                    return;
+                }
+            };
 
-        let mut upstream = match TcpStream::connect(upstream_addr).await {
-            Ok(stream) => stream,
-            Err(e) => {
-                error!(
-                    "Failed to connect to upstream {upstream_addr} for client {client_addr}: {e}"
-                );
-                return;
-            }
-        };
+            info!(upstream = upstream_addr, "Established");
 
-        info!("{client_addr} <-> {upstream_addr} established");
-
-        match copy_bidirectional(&mut client, &mut upstream).await {
-            Ok((to_upstream, to_client)) => {
-                info!("{client_addr} session ended (sent: {to_upstream}, received: {to_client})");
-            }
-            Err(e) => {
-                error!("Proxy error {client_addr} <-> {upstream_addr}: {e}");
+            match copy_bidirectional(&mut client, &mut upstream).await {
+                Ok((to_upstream, to_client)) => {
+                    info!(sent = to_upstream, recv = to_client, "Session ended");
+                }
+                Err(e) => {
+                    error!("Proxy error: {e}");
+                }
             }
         }
+        .instrument(info_span!(
+            "conn",
+            sid = session_id,
+            ip = %client_addr.ip(),
+            port = client_addr.port()
+        ))
+        .await;
     }
 }
 
