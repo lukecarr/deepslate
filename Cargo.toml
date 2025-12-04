@@ -24,3 +24,11 @@ tracing-subscriber = { version = "0.3", features = ["env-filter"] }
 lto = true
 strip = true
 codegen-units = 1
+
+[lints.clippy]
+all = "warn"
+pedantic = "warn"
+nursery = "warn"
+cargo = "warn"
+# Allow multiple crate versions: this is handled by cargo-deny.
+multiple_crate_versions = { level = "allow", priority = 1 }
