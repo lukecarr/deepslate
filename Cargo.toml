@@ -19,6 +19,15 @@ members = ["."]
 tokio = { version = "1", features = ["net", "io-util", "rt-multi-thread", "macros"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+rand = "0.9"
+tonic = "0.14"
+tonic-prost = "0.14"
+prost = "0.14"
+axum = "0.8"
+serde = { version = "1", features = ["derive"] }
+
+[build-dependencies]
+tonic-prost-build = "0.14"
 
 [profile.release]
 lto = true
@@ -32,3 +41,6 @@ nursery = "warn"
 cargo = "warn"
 # Allow multiple crate versions: this is handled by cargo-deny.
 multiple_crate_versions = { level = "allow", priority = 1 }
+
+[package.metadata.cargo-machete]
+ignored = ["prost", "tonic-prost"]

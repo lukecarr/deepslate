@@ -1,0 +1,85 @@
+syntax = "proto3";
+
+package deepslate;
+
+// Deepslate control plane service for managing upstream servers.
+service Deepslate {
+  // Register a new upstream server.
+  rpc RegisterServer(RegisterServerRequest) returns (RegisterServerResponse);
+
+  // Deregister an existing upstream server.
+  rpc DeregisterServer(DeregisterServerRequest) returns (DeregisterServerResponse);
+
+  // Update the weight of an existing server.
+  rpc UpdateWeight(UpdateWeightRequest) returns (UpdateWeightResponse);
+
+  // List all registered servers.
+  rpc ListServers(ListServersRequest) returns (ListServersResponse);
+}
+
+// Server representation in the API.
+message Server {
+  // Unique identifier for the server.
+  string id = 1;
+  // Socket address (host:port) of the upstream server.
+  string address = 2;
+  // Routing weight (0 = no traffic, higher = more traffic).
+  uint32 weight = 3;
+}
+
+// Request to register a new server.
+message RegisterServerRequest {
+  // Unique identifier for the server.
+  string id = 1;
+  // Socket address (host:port) of the upstream server.
+  string address = 2;
+  // Initial routing weight.
+  uint32 weight = 3;
+}
+
+// Response for server registration.
+message RegisterServerResponse {
+  // Whether the registration was successful.
+  bool success = 1;
+  // Error message if registration failed.
+  string error = 2;
+}
+
+// Request to deregister a server.
+message DeregisterServerRequest {
+  // ID of the server to deregister.
+  string id = 1;
+}
+
+// Response for server deregistration.
+message DeregisterServerResponse {
+  // Whether the deregistration was successful.
+  bool success = 1;
+  // Error message if deregistration failed.
+  string error = 2;
+}
+
+// Request to update server weight.
+message UpdateWeightRequest {
+  // ID of the server to update.
+  string id = 1;
+  // New weight value.
+  uint32 weight = 2;
+}
+
+// Response for weight update.
+message UpdateWeightResponse {
+  // Whether the update was successful.
+  bool success = 1;
+  // Error message if update failed.
+  string error = 2;
+}
+
+// Request to list all servers.
+message ListServersRequest {}
+
+// Response containing all registered servers.
+message ListServersResponse {
+  // List of all registered servers.
+  repeated Server servers = 1;
+}

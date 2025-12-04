@@ -1,0 +1,239 @@
+openapi: 3.1.0
+info:
+  title: Deepslate Control Plane API
+  description: |
+    REST API for managing upstream servers in Deepslate, an L4 load balancer
+    for Minecraft proxy server blue-green deployments.
+  version: 0.1.0
+  license:
+    name: MIT OR Apache-2.0
+    identifier: MIT
+
+servers:
+  - url: http://localhost:25578
+    description: Local development server
+
+paths:
+  /servers:
+    get:
+      summary: List all servers
+      description: Returns all registered upstream servers in the pool.
+      operationId: listServers
+      tags:
+        - servers
+      responses:
+        "200":
+          description: List of registered servers
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: "#/components/schemas/Server"
+              example:
+                - id: blue
+                  address: "blue:25565"
+                  weight: 100
+                - id: green
+                  address: "green:25565"
+                  weight: 0
+
+    post:
+      summary: Register a server
+      description: |
+        Register a new upstream server in the pool. The server ID must be unique.
+        Use weight 0 to register a server without routing traffic to it (useful for
+        pre-staging during blue-green deployments).
+      operationId: registerServer
+      tags:
+        - servers
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RegisterRequest"
+            example:
+              id: blue
+              address: "blue:25565"
+              weight: 100
+      responses:
+        "201":
+          description: Server registered successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+              example:
+                success: true
+        "409":
+          description: Server with this ID already exists
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+              example:
+                success: false
+                error: "Server with ID 'blue' already exists"
+
+  /servers/{id}:
+    delete:
+      summary: Deregister a server
+      description: |
+        Remove a server from the pool. Existing connections to this server
+        are not affected, but no new connections will be routed to it.
+      operationId: deregisterServer
+      tags:
+        - servers
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Unique server identifier
+          schema:
+            type: string
+          example: blue
+      responses:
+        "200":
+          description: Server deregistered successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+              example:
+                success: true
+        "404":
+          description: Server not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+              example:
+                success: false
+                error: "Server with ID 'blue' not found"
+
+  /servers/{id}/weight:
+    patch:
+      summary: Update server weight
+      description: |
+        Update the routing weight of a server. Higher weights receive proportionally
+        more traffic. Set weight to 0 to stop routing new connections to the server
+        (existing connections remain active).
+      operationId: updateWeight
+      tags:
+        - servers
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Unique server identifier
+          schema:
+            type: string
+          example: blue
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/UpdateWeightRequest"
+            example:
+              weight: 50
+      responses:
+        "200":
+          description: Weight updated successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+              example:
+                success: true
+        "404":
+          description: Server not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+              example:
+                success: false
+                error: "Server with ID 'blue' not found"
+
+components:
+  schemas:
+    Server:
+      type: object
+      description: An upstream server in the pool
+      required:
+        - id
+        - address
+        - weight
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the server
+          example: blue
+        address:
+          type: string
+          description: Host and port of the upstream server (supports hostnames)
+          example: "blue:25565"
+        weight:
+          type: integer
+          format: uint32
+          minimum: 0
+          description: |
+            Routing weight. Higher values receive proportionally more traffic.
+            Set to 0 to disable routing to this server.
+          example: 100
+
+    RegisterRequest:
+      type: object
+      description: Request to register a new server
+      required:
+        - id
+        - address
+        - weight
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the server
+          example: blue
+        address:
+          type: string
+          description: Host and port of the upstream server (supports hostnames)
+          example: "blue:25565"
+        weight:
+          type: integer
+          format: uint32
+          minimum: 0
+          description: Initial routing weight
+          example: 100
+
+    UpdateWeightRequest:
+      type: object
+      description: Request to update server weight
+      required:
+        - weight
+      properties:
+        weight:
+          type: integer
+          format: uint32
+          minimum: 0
+          description: New routing weight
+          example: 50
+
+    ApiResponse:
+      type: object
+      description: Generic API response
+      required:
+        - success
+      properties:
+        success:
+          type: boolean
+          description: Whether the operation succeeded
+        error:
+          type: string
+          description: Error message (only present on failure)
+
+tags:
+  - name: servers
+    description: Upstream server management
+
