@@ -1,0 +1,6 @@
+config-version = "2.7"
+motd = "<gray>Deepslate <blue>Blue"
+[servers]
+mc = "minecraft:25565"
+try = ["mc"]
+[forced-hosts]

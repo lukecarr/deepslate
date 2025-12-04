@@ -1,0 +1,26 @@
+[package]
+name = "deepslate"
+version = "0.1.0"
+authors = ["Luke Carr <me@carr.sh>"]
+edition = "2024"
+description = "L4 load balancer for Minecraft proxy server blue-green deployments"
+readme = "https://github.com/lukecarr/deepslate/blob/main/README.md"
+homepage = "https://github.com/lukecarr/deepslate"
+repository = "https://github.com/lukecarr/deepslate"
+license = "MIT OR Apache-2.0"
+keywords = ["minecraft", "proxy", "blue-green", "load-balancer", "l4"]
+categories = ["network-programming"]
+publish = false
+
+[workspace]
+members = ["."]
+
+[dependencies]
+tokio = { version = "1", features = ["net", "io-util", "rt-multi-thread", "macros"] }
+tracing = "0.1"
+tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+
+[profile.release]
+lto = true
+strip = true
+codegen-units = 1

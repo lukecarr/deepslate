@@ -1,0 +1,46 @@
+services:
+  deepslate:
+    build:
+      context: ../
+      dockerfile: Dockerfile
+    environment:
+      - RUST_LOG=debug
+    ports:
+      - "25565:25565"
+    depends_on:
+      - blue
+      - green
+
+  blue:
+    build:
+      context: .
+      dockerfile: velocity.Dockerfile
+      args:
+        VELOCITY_CONFIG: blue.velocity.toml
+    expose:
+      - 25565
+
+  green:
+    build:
+      context: .
+      dockerfile: velocity.Dockerfile
+      args:
+        VELOCITY_CONFIG: green.velocity.toml
+    expose:
+      - 25565
+
+  minecraft:
+    image: itzg/minecraft-server:latest
+    expose:
+      - 25565
+    environment:
+      - EULA=TRUE
+      - TYPE=PAPER
+      - VERSION=1.21.10
+      - ONLINE_MODE=FALSE
+      - OPS=Qubitl
+    volumes:
+      - minecraft_data:/data
+
+volumes:
+  minecraft_data: {}
