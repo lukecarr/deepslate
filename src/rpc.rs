@@ -46,7 +46,7 @@ impl Deepslate for DeepslateService {
 
         // Create and register the server
         let server = Server::new(req.id.clone(), req.address.clone(), req.weight);
-        if self.pool.register(server) {
+        if self.pool.register(&server) {
             tracing::info!(id = %req.id, addr = %req.address, weight = req.weight, "Server registered");
             Ok(Response::new(RegisterServerResponse {
                 success: true,

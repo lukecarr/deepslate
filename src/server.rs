@@ -2,11 +2,12 @@
 
 use rand::Rng;
 use std::sync::RwLock;
+use tracing::info;
 
 /// A single upstream server in the pool.
 #[derive(Debug, Clone)]
 pub struct Server {
-    /// Unique identifier (e.g., "velocity-blue", "velocity-green-2")
+    /// Unique identifier (e.g., "blue", "green")
     pub id: String,
     /// Upstream address (host:port, supports hostnames)
     pub addr: String,
@@ -16,6 +17,7 @@ pub struct Server {
 
 impl Server {
     /// Create a new server with the given id, address, and weight.
+    #[must_use]
     pub fn new(id: impl Into<String>, addr: impl Into<String>, weight: u32) -> Self {
         Self {
             id: id.into(),
@@ -41,12 +43,20 @@ impl ServerPool {
 
     /// Register a new server in the pool.
     /// Returns `true` if the server was added, `false` if a server with the same ID already exists.
-    pub fn register(&self, server: Server) -> bool {
+    pub fn register(&self, server: &Server) -> bool {
         let mut servers = self.servers.write().unwrap();
         if servers.iter().any(|s| s.id == server.id) {
             return false;
         }
-        servers.push(server);
+
+        servers.push(server.clone());
+        drop(servers);
+
+        info!(
+            "Registered server: id = {}, addr = {}, weight = {}",
+            server.id, server.addr, server.weight
+        );
+
         true
     }
 
@@ -107,11 +117,6 @@ impl ServerPool {
         // Shouldn't reach here, but return None as fallback
         None
     }
-
-    /// Returns the number of servers in the pool.
-    pub fn len(&self) -> usize {
-        self.servers.read().unwrap().len()
-    }
 }
 
 impl Default for ServerPool {
@@ -129,8 +134,8 @@ mod tests {
         let pool = ServerPool::new();
         let server = Server::new("test", "127.0.0.1:25565", 100);
 
-        assert!(pool.register(server.clone()));
-        assert!(!pool.register(server)); // Duplicate
+        assert!(pool.register(&server));
+        assert!(!pool.register(&server)); // Duplicate
 
         let servers = pool.list();
         assert_eq!(servers.len(), 1);
@@ -140,7 +145,7 @@ mod tests {
     #[test]
     fn test_deregister() {
         let pool = ServerPool::new();
-        pool.register(Server::new("test", "127.0.0.1:25565", 100));
+        pool.register(&Server::new("test", "127.0.0.1:25565", 100));
 
         let removed = pool.deregister("test");
         assert!(removed.is_some());
@@ -153,7 +158,7 @@ mod tests {
     #[test]
     fn test_update_weight() {
         let pool = ServerPool::new();
-        pool.register(Server::new("test", "127.0.0.1:25565", 100));
+        pool.register(&Server::new("test", "127.0.0.1:25565", 100));
 
         assert_eq!(pool.update_weight("test", 50), Some(100));
         assert_eq!(pool.list()[0].weight, 50);
@@ -170,14 +175,14 @@ mod tests {
     #[test]
     fn test_select_zero_weight() {
         let pool = ServerPool::new();
-        pool.register(Server::new("test", "127.0.0.1:25565", 0));
+        pool.register(&Server::new("test", "127.0.0.1:25565", 0));
         assert!(pool.select().is_none());
     }
 
     #[test]
     fn test_select_single_server() {
         let pool = ServerPool::new();
-        pool.register(Server::new("test", "127.0.0.1:25565", 100));
+        pool.register(&Server::new("test", "127.0.0.1:25565", 100));
 
         // Should always return the single server
         for _ in 0..10 {
@@ -190,8 +195,8 @@ mod tests {
     #[test]
     fn test_weighted_selection_distribution() {
         let pool = ServerPool::new();
-        pool.register(Server::new("high", "127.0.0.1:25565", 90));
-        pool.register(Server::new("low", "127.0.0.1:25566", 10));
+        pool.register(&Server::new("high", "127.0.0.1:25565", 90));
+        pool.register(&Server::new("low", "127.0.0.1:25566", 10));
 
         let mut high_count = 0;
         let mut low_count = 0;

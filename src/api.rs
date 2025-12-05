@@ -90,7 +90,7 @@ async fn register_server(
 ) -> (StatusCode, Json<ApiResponse>) {
     // Register the server
     let server = Server::new(req.id.clone(), req.address.clone(), req.weight);
-    if pool.register(server) {
+    if pool.register(&server) {
         tracing::info!(id = %req.id, addr = %req.address, weight = req.weight, "Server registered");
         (StatusCode::CREATED, Json(ApiResponse::success()))
     } else {
@@ -129,12 +129,17 @@ async fn update_weight(
     Json(req): Json<UpdateWeightRequest>,
 ) -> (StatusCode, Json<ApiResponse>) {
     pool.update_weight(&id, req.weight).map_or_else(
-        || (StatusCode::NOT_FOUND, Json(ApiResponse::error(format!(
-            "Server with ID '{id}' not found"
-        )))),
+        || {
+            (
+                StatusCode::NOT_FOUND,
+                Json(ApiResponse::error(format!(
+                    "Server with ID '{id}' not found"
+                ))),
+            )
+        },
         |old| {
             tracing::info!(id = %id, old, new = req.weight, "Server weight updated");
             (StatusCode::OK, Json(ApiResponse::success()))
-        }
+        },
     )
 }

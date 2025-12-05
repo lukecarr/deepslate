@@ -4,22 +4,28 @@ mod api;
 mod proxy;
 mod rpc;
 mod server;
+mod utils;
 
 use std::sync::Arc;
 
 use tokio::net::TcpListener;
 use tonic::transport::Server as TonicServer;
-use tracing::info;
+use tracing::{debug, error, info};
 
 use crate::proxy::Proxy;
 use crate::rpc::DeepslateService;
 use crate::rpc::proto::deepslate_server::DeepslateServer;
 use crate::server::{Server, ServerPool};
+use crate::utils::env_bool;
+
+type BoxError = Box<dyn std::error::Error + Send + Sync>;
 
 #[tokio::main]
-async fn main() -> Result<(), Box<dyn std::error::Error>> {
+async fn main() -> Result<(), BoxError> {
     tracing_subscriber::fmt()
-        .with_env_filter(tracing_subscriber::EnvFilter::from_default_env())
+        .with_env_filter(tracing_subscriber::EnvFilter::new(
+            std::env::var("LOG_LEVEL").unwrap_or_else(|_| "info".to_string()),
+        ))
         .init();
 
     // Create server pool
@@ -27,46 +33,50 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
 
     // Register default servers (for backwards compatibility during development)
     // In production, servers would register themselves via the control plane
-    pool.register(Server::new("blue", "blue:25565", 100));
-    pool.register(Server::new("green", "green:25565", 100));
+    pool.register(&Server::new("blue", "blue:25565", 100));
+    pool.register(&Server::new("green", "green:25565", 100));
 
-    info!("Registered {} upstream server(s)", pool.len());
-
-    // Start the gRPC control plane
+    // Parse configuration
+    let grpc_enabled = env_bool("GRPC_ENABLED", true)?;
+    let rest_enabled = env_bool("REST_ENABLED", true)?;
     let grpc_addr = std::env::var("GRPC_ADDR").unwrap_or_else(|_| "0.0.0.0:25577".to_string());
-    let grpc_pool = Arc::clone(&pool);
-    tokio::spawn(async move {
-        if let Err(e) = run_grpc_server(&grpc_addr, grpc_pool).await {
-            tracing::error!("gRPC server error: {e}");
-        }
-    });
-
-    // Start the REST API
     let rest_addr = std::env::var("REST_ADDR").unwrap_or_else(|_| "0.0.0.0:25578".to_string());
-    let rest_pool = Arc::clone(&pool);
-    tokio::spawn(async move {
-        if let Err(e) = run_rest_server(&rest_addr, rest_pool).await {
-            tracing::error!("REST server error: {e}");
-        }
-    });
+    let proxy_addr = std::env::var("ADDR").unwrap_or_else(|_| "0.0.0.0:25565".to_string());
 
-    // Start the L4 proxy
+    if !grpc_enabled {
+        debug!("gRPC control plane disabled via GRPC_ENABLED=false");
+    }
+    if !rest_enabled {
+        debug!("REST control plane disabled via REST_ENABLED=false");
+    }
+
+    // Pre-bind the proxy listener to fail fast on port conflicts
+    let proxy_listener = TcpListener::bind(&proxy_addr).await?;
+    info!("Proxy listening on {proxy_addr}");
+
+    // Create the proxy
     let proxy = Arc::new(Proxy::new(Arc::clone(&pool)));
-    let listen_addr = std::env::var("ADDR").unwrap_or_else(|_| "0.0.0.0:25565".to_string());
-    let listener = TcpListener::bind(&listen_addr).await?;
 
-    info!("Proxy listening on {listen_addr}");
-
-    proxy.run(listener).await;
+    // Run all servers concurrently - exit if any fails
+    tokio::select! {
+        result = run_grpc_server(&grpc_addr, Arc::clone(&pool)), if grpc_enabled => {
+            error!("gRPC server exited unexpectedly");
+            result?;
+        }
+        result = run_rest_server(&rest_addr, Arc::clone(&pool)), if rest_enabled => {
+            error!("REST server exited unexpectedly");
+            result?;
+        }
+        () = proxy.run(proxy_listener) => {
+            error!("Proxy exited unexpectedly");
+        }
+    }
 
     Ok(())
 }
 
 /// Run the gRPC control plane server.
-async fn run_grpc_server(
-    addr: &str,
-    pool: Arc<ServerPool>,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+async fn run_grpc_server(addr: &str, pool: Arc<ServerPool>) -> Result<(), BoxError> {
     let addr = addr.parse()?;
     let service = DeepslateServer::new(DeepslateService::new(pool));
 
@@ -81,15 +91,12 @@ async fn run_grpc_server(
 }
 
 /// Run the REST API server.
-async fn run_rest_server(
-    addr: &str,
-    pool: Arc<ServerPool>,
-) -> Result<(), Box<dyn std::error::Error + Send + Sync>> {
+async fn run_rest_server(addr: &str, pool: Arc<ServerPool>) -> Result<(), BoxError> {
+    let listener = TcpListener::bind(addr).await?;
     let router = api::router(pool);
 
     info!("REST control plane listening on {addr}");
 
-    let listener = TcpListener::bind(addr).await?;
     axum::serve(listener, router).await?;
 
     Ok(())
