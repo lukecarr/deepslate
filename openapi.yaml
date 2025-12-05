@@ -166,6 +166,7 @@ components:
         - id
         - address
         - weight
+        - enabled
       properties:
         id:
           type: string
@@ -183,6 +184,10 @@ components:
             Routing weight. Higher values receive proportionally more traffic.
             Set to 0 to disable routing to this server.
           example: 100
+        enabled:
+          type: boolean
+          description: Whether the server is enabled
+          example: true
 
     RegisterRequest:
       type: object
@@ -191,6 +196,7 @@ components:
         - id
         - address
         - weight
+        - enabled
       properties:
         id:
           type: string
@@ -206,6 +212,10 @@ components:
           minimum: 0
           description: Initial routing weight
           example: 100
+        enabled:
+          type: boolean
+          description: Whether the server is enabled
+          example: true
 
     UpdateWeightRequest:
       type: object

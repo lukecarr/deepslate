@@ -25,6 +25,8 @@ message Server {
   string address = 2;
   // Routing weight (0 = no traffic, higher = more traffic).
   uint32 weight = 3;
+  // Whether the server is enabled.
+  bool enabled = 4;
 }
 
 // Request to register a new server.
@@ -35,6 +37,8 @@ message RegisterServerRequest {
   string address = 2;
   // Initial routing weight.
   uint32 weight = 3;
+  // Initial enabled status.
+  bool enabled = 4;
 }
 
 // Response for server registration.

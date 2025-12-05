@@ -26,6 +26,7 @@ pub struct RegisterRequest {
     pub id: String,
     pub address: String,
     pub weight: u32,
+    pub enabled: bool,
 }
 
 /// Request to update server weight.
@@ -89,9 +90,9 @@ async fn register_server(
     Json(req): Json<RegisterRequest>,
 ) -> (StatusCode, Json<ApiResponse>) {
     // Register the server
-    let server = Server::new(req.id.clone(), req.address.clone(), req.weight);
+    let server = Server::new(req.id.clone(), req.address.clone(), req.weight, req.enabled);
     if pool.register(&server) {
-        tracing::info!(id = %req.id, addr = %req.address, weight = req.weight, "Server registered");
+        tracing::info!(id = %req.id, addr = %req.address, weight = req.weight, enabled = req.enabled, "Server registered");
         (StatusCode::CREATED, Json(ApiResponse::success()))
     } else {
         (

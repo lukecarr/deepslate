@@ -45,9 +45,9 @@ impl Deepslate for DeepslateService {
         let req = request.into_inner();
 
         // Create and register the server
-        let server = Server::new(req.id.clone(), req.address.clone(), req.weight);
+        let server = Server::new(req.id.clone(), req.address.clone(), req.weight, req.enabled);
         if self.pool.register(&server) {
-            tracing::info!(id = %req.id, addr = %req.address, weight = req.weight, "Server registered");
+            tracing::info!(id = %req.id, addr = %req.address, weight = req.weight, enabled = req.enabled, "Server registered");
             Ok(Response::new(RegisterServerResponse {
                 success: true,
                 error: String::new(),
@@ -112,6 +112,7 @@ impl Deepslate for DeepslateService {
                 id: s.id,
                 address: s.addr,
                 weight: s.weight,
+                enabled: s.enabled,
             })
             .collect();
 

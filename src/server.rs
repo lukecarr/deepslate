@@ -13,16 +13,19 @@ pub struct Server {
     pub addr: String,
     /// Routing weight (0 = no traffic, higher = more traffic)
     pub weight: u32,
+    /// Whether the server is enabled.
+    pub enabled: bool,
 }
 
 impl Server {
     /// Create a new server with the given id, address, and weight.
     #[must_use]
-    pub fn new(id: impl Into<String>, addr: impl Into<String>, weight: u32) -> Self {
+    pub fn new(id: impl Into<String>, addr: impl Into<String>, weight: u32, enabled: bool) -> Self {
         Self {
             id: id.into(),
             addr: addr.into(),
             weight,
+            enabled,
         }
     }
 }
@@ -56,6 +59,7 @@ impl ServerPool {
             id = server.id,
             addr = server.addr,
             weight = server.weight,
+            enabled = server.enabled,
             "Registered server"
         );
 
@@ -83,6 +87,17 @@ impl ServerPool {
         })
     }
 
+    /// Update the enabled status of a server by ID.
+    /// Returns the old enabled status of the server.
+    pub fn update_enabled(&self, id: &str, enabled: bool) -> Option<bool> {
+        let mut servers = self.servers.write().unwrap();
+        servers.iter_mut().find(|s| s.id == id).map(|s| {
+            let old = s.enabled;
+            s.enabled = enabled;
+            old
+        })
+    }
+
     /// List all servers in the pool.
     pub fn list(&self) -> Vec<Server> {
         self.servers.read().unwrap().clone()
@@ -93,21 +108,21 @@ impl ServerPool {
     pub fn select(&self) -> Option<Server> {
         let servers = self.servers.read().unwrap();
 
-        // Calculate total weight
-        let total_weight: u32 = servers.iter().map(|s| s.weight).sum();
-        if total_weight == 0 {
+        let eligible_servers: Vec<&Server> = servers
+            .iter()
+            .filter(|s| s.enabled && s.weight > 0)
+            .collect();
+        if eligible_servers.is_empty() {
             return None;
         }
 
+        let total_weight: u32 = eligible_servers.iter().map(|s| s.weight).sum();
         // Generate random value in [0, total_weight)
         let mut rng = rand::rng();
         let mut random_value = rng.random_range(0..total_weight);
 
         // Walk servers, subtracting weights until we hit zero
-        for server in &*servers {
-            if server.weight == 0 {
-                continue;
-            }
+        for server in eligible_servers {
             if random_value < server.weight {
                 return Some(server.clone());
             }
@@ -134,7 +149,7 @@ mod tests {
     #[test]
     fn test_register_and_list() {
         let pool = ServerPool::new();
-        let server = Server::new("test", "127.0.0.1:25565", 100);
+        let server = Server::new("test", "127.0.0.1:25565", 100, true);
 
         assert!(pool.register(&server));
         assert!(!pool.register(&server)); // Duplicate
@@ -147,7 +162,7 @@ mod tests {
     #[test]
     fn test_deregister() {
         let pool = ServerPool::new();
-        pool.register(&Server::new("test", "127.0.0.1:25565", 100));
+        pool.register(&Server::new("test", "127.0.0.1:25565", 100, true));
 
         let removed = pool.deregister("test");
         assert!(removed.is_some());
@@ -160,7 +175,7 @@ mod tests {
     #[test]
     fn test_update_weight() {
         let pool = ServerPool::new();
-        pool.register(&Server::new("test", "127.0.0.1:25565", 100));
+        pool.register(&Server::new("test", "127.0.0.1:25565", 100, true));
 
         assert_eq!(pool.update_weight("test", 50), Some(100));
         assert_eq!(pool.list()[0].weight, 50);
@@ -177,14 +192,14 @@ mod tests {
     #[test]
     fn test_select_zero_weight() {
         let pool = ServerPool::new();
-        pool.register(&Server::new("test", "127.0.0.1:25565", 0));
+        pool.register(&Server::new("test", "127.0.0.1:25565", 0, true));
         assert!(pool.select().is_none());
     }
 
     #[test]
     fn test_select_single_server() {
         let pool = ServerPool::new();
-        pool.register(&Server::new("test", "127.0.0.1:25565", 100));
+        pool.register(&Server::new("test", "127.0.0.1:25565", 100, true));
 
         // Should always return the single server
         for _ in 0..10 {
@@ -197,8 +212,8 @@ mod tests {
     #[test]
     fn test_weighted_selection_distribution() {
         let pool = ServerPool::new();
-        pool.register(&Server::new("high", "127.0.0.1:25565", 90));
-        pool.register(&Server::new("low", "127.0.0.1:25566", 10));
+        pool.register(&Server::new("high", "127.0.0.1:25565", 90, true));
+        pool.register(&Server::new("low", "127.0.0.1:25566", 10, true));
 
         let mut high_count = 0;
         let mut low_count = 0;
