@@ -4,9 +4,11 @@ services:
       context: ../
       dockerfile: Dockerfile
     environment:
-      - RUST_LOG=debug
+      - LOG_LEVEL=debug
     ports:
       - "25565:25565"
+      - "25577:25577"
+      - "25578:25578"
     depends_on:
       - blue
       - green
