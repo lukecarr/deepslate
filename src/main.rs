@@ -26,11 +26,7 @@ async fn main() -> Result<(), BoxError> {
         std::env::var("LOG_LEVEL").unwrap_or_else(|_| "info".to_string()),
     );
 
-    let json_logging = std::env::var("LOG_JSON")
-        .map(|v| matches!(v.to_lowercase().as_str(), "true" | "1"))
-        .unwrap_or(false);
-
-    if json_logging {
+    if env_bool("LOG_JSON", false)? {
         tracing_subscriber::fmt()
             .json()
             .with_env_filter(log_filter)
@@ -66,7 +62,7 @@ async fn main() -> Result<(), BoxError> {
     // Pre-bind the proxy listener to fail fast on port conflicts
     let proxy_addr = std::env::var("ADDR").unwrap_or_else(|_| "0.0.0.0:25565".to_string());
     let proxy_listener = TcpListener::bind(&proxy_addr).await?;
-    info!("Proxy listening on {proxy_addr}");
+    info!(addr = %proxy_addr, "Proxy listening");
 
     // Create the proxy
     let proxy = Arc::new(Proxy::new(Arc::clone(&pool)));
@@ -94,7 +90,7 @@ async fn run_grpc_server(addr: &str, pool: Arc<ServerPool>) -> Result<(), BoxErr
     let addr = addr.parse()?;
     let service = DeepslateServer::new(DeepslateService::new(pool));
 
-    info!("gRPC control plane listening on {addr}");
+    info!(addr = %addr, "gRPC control plane listening");
 
     TonicServer::builder()
         .add_service(service)
@@ -109,7 +105,7 @@ async fn run_rest_server(addr: &str, pool: Arc<ServerPool>) -> Result<(), BoxErr
     let listener = TcpListener::bind(addr).await?;
     let router = api::router(pool);
 
-    info!("REST control plane listening on {addr}");
+    info!(addr = %addr, "REST control plane listening");
 
     axum::serve(listener, router).await?;
 
