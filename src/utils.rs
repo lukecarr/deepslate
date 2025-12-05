@@ -74,46 +74,46 @@ mod tests {
     #[test]
     fn test_env_bool_true_values() {
         with_env_var("TEST_BOOL", Some("true"), || {
-            assert_eq!(env_bool("TEST_BOOL", false).unwrap(), true);
+            assert!(env_bool("TEST_BOOL", false).unwrap());
         });
 
         with_env_var("TEST_BOOL", Some("TRUE"), || {
-            assert_eq!(env_bool("TEST_BOOL", false).unwrap(), true);
+            assert!(env_bool("TEST_BOOL", false).unwrap());
         });
 
         with_env_var("TEST_BOOL", Some("True"), || {
-            assert_eq!(env_bool("TEST_BOOL", false).unwrap(), true);
+            assert!(env_bool("TEST_BOOL", false).unwrap());
         });
 
         with_env_var("TEST_BOOL", Some("1"), || {
-            assert_eq!(env_bool("TEST_BOOL", false).unwrap(), true);
+            assert!(env_bool("TEST_BOOL", false).unwrap());
         });
     }
 
     #[test]
     fn test_env_bool_false_values() {
         with_env_var("TEST_BOOL", Some("false"), || {
-            assert_eq!(env_bool("TEST_BOOL", true).unwrap(), false);
+            assert!(!env_bool("TEST_BOOL", true).unwrap());
         });
 
         with_env_var("TEST_BOOL", Some("FALSE"), || {
-            assert_eq!(env_bool("TEST_BOOL", true).unwrap(), false);
+            assert!(!env_bool("TEST_BOOL", true).unwrap());
         });
 
         with_env_var("TEST_BOOL", Some("False"), || {
-            assert_eq!(env_bool("TEST_BOOL", true).unwrap(), false);
+            assert!(!env_bool("TEST_BOOL", true).unwrap());
         });
 
         with_env_var("TEST_BOOL", Some("0"), || {
-            assert_eq!(env_bool("TEST_BOOL", true).unwrap(), false);
+            assert!(!env_bool("TEST_BOOL", true).unwrap());
         });
     }
 
     #[test]
     fn test_env_bool_default_when_unset() {
         with_env_var("TEST_BOOL_UNSET", None, || {
-            assert_eq!(env_bool("TEST_BOOL_UNSET", true).unwrap(), true);
-            assert_eq!(env_bool("TEST_BOOL_UNSET", false).unwrap(), false);
+            assert!(env_bool("TEST_BOOL_UNSET", true).unwrap());
+            assert!(!env_bool("TEST_BOOL_UNSET", false).unwrap());
         });
     }
 

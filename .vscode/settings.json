@@ -1,0 +1,12 @@
+{
+    "rust-analyzer.check.overrideCommand": [
+        "cargo",
+        "clippy",
+        "--all-targets",
+        "--all-features",
+        "--message-format=json",
+        "--",
+        "-D",
+        "warnings"
+    ]
+}
