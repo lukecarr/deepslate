@@ -246,4 +246,111 @@ mod tests {
             "total count: {high_count} + {low_count}"
         );
     }
+
+    #[test]
+    fn test_update_enabled() {
+        let pool = ServerPool::new();
+        pool.register(&Server::new("test", "127.0.0.1:25565", 100, true));
+
+        // Disable the server
+        assert_eq!(pool.update_enabled("test", false), Some(true));
+        assert!(!pool.list()[0].enabled);
+
+        // Re-enable the server
+        assert_eq!(pool.update_enabled("test", true), Some(false));
+        assert!(pool.list()[0].enabled);
+
+        // Nonexistent server
+        assert_eq!(pool.update_enabled("nonexistent", false), None);
+    }
+
+    #[test]
+    fn test_select_disabled_server() {
+        let pool = ServerPool::new();
+        pool.register(&Server::new("test", "127.0.0.1:25565", 100, false));
+
+        // Disabled server should not be selected
+        assert!(pool.select().is_none());
+    }
+
+    #[test]
+    fn test_select_all_disabled() {
+        let pool = ServerPool::new();
+        pool.register(&Server::new("one", "127.0.0.1:25565", 50, false));
+        pool.register(&Server::new("two", "127.0.0.1:25566", 50, false));
+
+        // All disabled, should return None
+        assert!(pool.select().is_none());
+    }
+
+    #[test]
+    fn test_select_mixed_enabled_disabled() {
+        let pool = ServerPool::new();
+        pool.register(&Server::new("enabled", "127.0.0.1:25565", 100, true));
+        pool.register(&Server::new("disabled", "127.0.0.1:25566", 100, false));
+
+        // Should always select the enabled server
+        for _ in 0..10 {
+            let selected = pool.select();
+            assert!(selected.is_some());
+            assert_eq!(selected.unwrap().id, "enabled");
+        }
+    }
+
+    #[test]
+    fn test_select_after_disable() {
+        let pool = ServerPool::new();
+        pool.register(&Server::new("blue", "127.0.0.1:25565", 100, true));
+        pool.register(&Server::new("green", "127.0.0.1:25566", 100, true));
+
+        // Both enabled, either could be selected
+        let selected = pool.select();
+        assert!(selected.is_some());
+
+        // Disable "blue"
+        pool.update_enabled("blue", false);
+
+        // Now only "green" should be selected
+        for _ in 0..10 {
+            let selected = pool.select();
+            assert!(selected.is_some());
+            assert_eq!(selected.unwrap().id, "green");
+        }
+
+        // Disable "green" too
+        pool.update_enabled("green", false);
+
+        // No servers available
+        assert!(pool.select().is_none());
+    }
+
+    #[test]
+    fn test_weighted_selection_ignores_disabled() {
+        let pool = ServerPool::new();
+        pool.register(&Server::new("enabled_high", "127.0.0.1:25565", 90, true));
+        pool.register(&Server::new("enabled_low", "127.0.0.1:25566", 10, true));
+        pool.register(&Server::new("disabled_huge", "127.0.0.1:25567", 1000, false));
+
+        let mut high_count = 0;
+        let mut low_count = 0;
+
+        for _ in 0..1000 {
+            let selected = pool.select().unwrap();
+            match selected.id.as_str() {
+                "enabled_high" => high_count += 1,
+                "enabled_low" => low_count += 1,
+                "disabled_huge" => panic!("Disabled server should never be selected"),
+                _ => panic!("Unknown server selected"),
+            }
+        }
+
+        // Distribution should still be ~90/10 between enabled servers
+        let high_ratio = high_count as f64 / 1000.0;
+        assert!(
+            high_ratio > 0.80 && high_ratio < 0.98,
+            "high_ratio: {high_ratio}"
+        );
+
+        assert_eq!(high_count + low_count, 1000);
+    }
 }
