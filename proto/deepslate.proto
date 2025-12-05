@@ -15,6 +15,12 @@ service Deepslate {
 
   // List all registered servers.
   rpc ListServers(ListServersRequest) returns (ListServersResponse);
+
+  // Enable an existing server.
+  rpc EnableServer(EnableServerRequest) returns (EnableServerResponse);
+
+  // Disable an existing server.
+  rpc DisableServer(DisableServerRequest) returns (DisableServerResponse);
 }
 
 // Server representation in the API.
@@ -25,6 +31,8 @@ message Server {
   string address = 2;
   // Routing weight (0 = no traffic, higher = more traffic).
   uint32 weight = 3;
+  // Whether the server is enabled.
+  bool enabled = 4;
 }
 
 // Request to register a new server.
@@ -35,6 +43,8 @@ message RegisterServerRequest {
   string address = 2;
   // Initial routing weight.
   uint32 weight = 3;
+  // Initial enabled status.
+  bool enabled = 4;
 }
 
 // Response for server registration.
@@ -82,4 +92,32 @@ message ListServersRequest {}
 message ListServersResponse {
   // List of all registered servers.
   repeated Server servers = 1;
+}
+
+// Request to enable a server.
+message EnableServerRequest {
+  // ID of the server to enable.
+  string id = 1;
+}
+
+// Response for server enable request.
+message EnableServerResponse {
+  // Whether the operation was successful.
+  bool success = 1;
+  // Error message if the operation failed.
+  string error = 2;
+}
+
+// Request to disable a server.
+message DisableServerRequest {
+  // ID of the server to disable.
+  string id = 1;
+}
+
+// Response for server disable request.
+message DisableServerResponse {
+  // Whether the operation was successful.
+  bool success = 1;
+  // Error message if the operation failed.
+  string error = 2;
 }

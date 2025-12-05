@@ -19,7 +19,8 @@ pub mod proto {
 
 use proto::deepslate_server::Deepslate;
 use proto::{
-    DeregisterServerRequest, DeregisterServerResponse, ListServersRequest, ListServersResponse,
+    DeregisterServerRequest, DeregisterServerResponse, DisableServerRequest, DisableServerResponse,
+    EnableServerRequest, EnableServerResponse, ListServersRequest, ListServersResponse,
     RegisterServerRequest, RegisterServerResponse, UpdateWeightRequest, UpdateWeightResponse,
 };
 
@@ -45,9 +46,9 @@ impl Deepslate for DeepslateService {
         let req = request.into_inner();
 
         // Create and register the server
-        let server = Server::new(req.id.clone(), req.address.clone(), req.weight);
+        let server = Server::new(req.id.clone(), req.address.clone(), req.weight, req.enabled);
         if self.pool.register(&server) {
-            tracing::info!(id = %req.id, addr = %req.address, weight = req.weight, "Server registered");
+            tracing::info!(id = %req.id, addr = %req.address, weight = req.weight, enabled = req.enabled, "Server registered");
             Ok(Response::new(RegisterServerResponse {
                 success: true,
                 error: String::new(),
@@ -112,9 +113,50 @@ impl Deepslate for DeepslateService {
                 id: s.id,
                 address: s.addr,
                 weight: s.weight,
+                enabled: s.enabled,
             })
             .collect();
 
         Ok(Response::new(ListServersResponse { servers }))
+    }
+
+    async fn enable_server(
+        &self,
+        request: Request<EnableServerRequest>,
+    ) -> Result<Response<EnableServerResponse>, Status> {
+        let req = request.into_inner();
+
+        if self.pool.update_enabled(&req.id, true) {
+            tracing::info!(id = %req.id, "Server enabled");
+            Ok(Response::new(EnableServerResponse {
+                success: true,
+                error: String::new(),
+            }))
+        } else {
+            Ok(Response::new(EnableServerResponse {
+                success: false,
+                error: format!("Server with ID '{}' not found", req.id),
+            }))
+        }
+    }
+
+    async fn disable_server(
+        &self,
+        request: Request<DisableServerRequest>,
+    ) -> Result<Response<DisableServerResponse>, Status> {
+        let req = request.into_inner();
+
+        if self.pool.update_enabled(&req.id, false) {
+            tracing::info!(id = %req.id, "Server disabled");
+            Ok(Response::new(DisableServerResponse {
+                success: true,
+                error: String::new(),
+            }))
+        } else {
+            Ok(Response::new(DisableServerResponse {
+                success: false,
+                error: format!("Server with ID '{}' not found", req.id),
+            }))
+        }
     }
 }

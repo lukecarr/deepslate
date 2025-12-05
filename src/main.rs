@@ -32,9 +32,7 @@ async fn main() -> Result<(), BoxError> {
             .with_env_filter(log_filter)
             .init();
     } else {
-        tracing_subscriber::fmt()
-            .with_env_filter(log_filter)
-            .init();
+        tracing_subscriber::fmt().with_env_filter(log_filter).init();
     }
 
     // Create server pool
@@ -42,8 +40,8 @@ async fn main() -> Result<(), BoxError> {
 
     // Register default servers (for backwards compatibility during development)
     // In production, servers would register themselves via the control plane
-    pool.register(&Server::new("blue", "blue:25565", 100));
-    pool.register(&Server::new("green", "green:25565", 100));
+    pool.register(&Server::new("blue", "blue:25565", 100, true));
+    pool.register(&Server::new("green", "green:25565", 100, true));
 
     // Parse configuration
     let grpc_enabled = env_bool("GRPC_ENABLED", true)?;
@@ -53,7 +51,7 @@ async fn main() -> Result<(), BoxError> {
         debug!("gRPC control plane disabled via GRPC_ENABLED=false");
     }
     let grpc_addr = std::env::var("GRPC_ADDR").unwrap_or_else(|_| "0.0.0.0:25577".to_string());
-    
+
     if !rest_enabled {
         debug!("REST control plane disabled via REST_ENABLED=false");
     }

@@ -26,6 +26,7 @@ pub struct RegisterRequest {
     pub id: String,
     pub address: String,
     pub weight: u32,
+    pub enabled: bool,
 }
 
 /// Request to update server weight.
@@ -65,6 +66,8 @@ pub fn router(pool: Arc<ServerPool>) -> Router {
         .route("/servers", post(register_server))
         .route("/servers/{id}", delete(deregister_server))
         .route("/servers/{id}/weight", patch(update_weight))
+        .route("/servers/{id}/enable", post(enable_server))
+        .route("/servers/{id}/disable", post(disable_server))
         .with_state(pool)
 }
 
@@ -89,9 +92,9 @@ async fn register_server(
     Json(req): Json<RegisterRequest>,
 ) -> (StatusCode, Json<ApiResponse>) {
     // Register the server
-    let server = Server::new(req.id.clone(), req.address.clone(), req.weight);
+    let server = Server::new(req.id.clone(), req.address.clone(), req.weight, req.enabled);
     if pool.register(&server) {
-        tracing::info!(id = %req.id, addr = %req.address, weight = req.weight, "Server registered");
+        tracing::info!(id = %req.id, addr = %req.address, weight = req.weight, enabled = req.enabled, "Server registered");
         (StatusCode::CREATED, Json(ApiResponse::success()))
     } else {
         (
@@ -142,4 +145,40 @@ async fn update_weight(
             (StatusCode::OK, Json(ApiResponse::success()))
         },
     )
+}
+
+/// POST /servers/:id/enable - Enable a server.
+async fn enable_server(
+    State(pool): State<Arc<ServerPool>>,
+    Path(id): Path<String>,
+) -> (StatusCode, Json<ApiResponse>) {
+    if pool.update_enabled(&id, true) {
+        tracing::info!(id = %id, "Server enabled");
+        (StatusCode::OK, Json(ApiResponse::success()))
+    } else {
+        (
+            StatusCode::NOT_FOUND,
+            Json(ApiResponse::error(format!(
+                "Server with ID '{id}' not found"
+            ))),
+        )
+    }
+}
+
+/// POST /servers/:id/disable - Disable a server.
+async fn disable_server(
+    State(pool): State<Arc<ServerPool>>,
+    Path(id): Path<String>,
+) -> (StatusCode, Json<ApiResponse>) {
+    if pool.update_enabled(&id, false) {
+        tracing::info!(id = %id, "Server disabled");
+        (StatusCode::OK, Json(ApiResponse::success()))
+    } else {
+        (
+            StatusCode::NOT_FOUND,
+            Json(ApiResponse::error(format!(
+                "Server with ID '{id}' not found"
+            ))),
+        )
+    }
 }
