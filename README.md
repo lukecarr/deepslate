@@ -1,6 +1,6 @@
 # Deepslate
 
-L4 load balancer for Minecraft proxy server blue-green deployments.
+Programmable L4 load balancer for Minecraft proxy servers.
 
 ## Demo
 
