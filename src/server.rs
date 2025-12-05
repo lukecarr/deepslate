@@ -229,13 +229,13 @@ mod tests {
         }
 
         // High should get roughly 90% of selections (allow some variance)
-        let high_ratio = high_count as f64 / 1000.0;
+        let high_ratio = f64::from(high_count) / 1000.0;
         assert!(
             high_ratio > 0.80 && high_ratio < 0.98,
             "high_ratio: {high_ratio}"
         );
 
-        let low_ratio = low_count as f64 / 1000.0;
+        let low_ratio = f64::from(low_count) / 1000.0;
         assert!(
             low_ratio > 0.02 && low_ratio < 0.20,
             "low_ratio: {low_ratio}"
@@ -351,7 +351,7 @@ mod tests {
         }
 
         // Distribution should still be ~90/10 between enabled servers
-        let high_ratio = high_count as f64 / 1000.0;
+        let high_ratio = f64::from(high_count) / 1000.0;
         assert!(
             high_ratio > 0.80 && high_ratio < 0.98,
             "high_ratio: {high_ratio}"
