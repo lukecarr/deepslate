@@ -172,24 +172,24 @@ paths:
           schema:
             type: string
           example: blue
-    responses:
-      "200":
-        description: Server enabled successfully
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ApiResponse"
-            example:
-              success: true
-      "404":
-        description: Server not found
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ApiResponse"
-            example:
-              success: false
-              error: "Server with ID 'blue' not found"
+      responses:
+        "200":
+          description: Server enabled successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+              example:
+                success: true
+        "404":
+          description: Server not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+              example:
+                success: false
+                error: "Server with ID 'blue' not found"
   
   /servers/{id}/disable:
     post:
@@ -206,24 +206,24 @@ paths:
           schema:
             type: string
           example: blue
-    responses:
-      "200":
-        description: Server disabled successfully
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ApiResponse"
-            example:
-              success: true
-      "404":
-        description: Server not found
-        content:
-          application/json:
-            schema:
-              $ref: "#/components/schemas/ApiResponse"
-            example:
-              success: false
-              error: "Server with ID 'blue' not found"
+      responses:
+        "200":
+          description: Server disabled successfully
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+              example:
+                success: true
+        "404":
+          description: Server not found
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ApiResponse"
+              example:
+                success: false
+                error: "Server with ID 'blue' not found"
 
 components:
   schemas:
@@ -297,27 +297,6 @@ components:
           minimum: 0
           description: New routing weight
           example: 50
-    
-    EnableServerRequest:
-      type: object
-      description: Request to enable a server
-      required:
-        - id
-      properties:
-        id:
-          type: string
-          description: Unique identifier for the server
-
-    DisableServerRequest:
-      type: object
-      description: Request to disable a server
-      required:
-        - id
-      properties:
-        id:
-          type: string
-          description: Unique identifier for the server
-          example: blue
 
     ApiResponse:
       type: object

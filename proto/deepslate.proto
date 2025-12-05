@@ -111,7 +111,7 @@ message EnableServerResponse {
 // Request to disable a server.
 message DisableServerRequest {
   // ID of the server to disable.
-  string id = 2;
+  string id = 1;
 }
 
 // Response for server disable request.

@@ -128,11 +128,16 @@ impl Deepslate for DeepslateService {
 
         if self.pool.update_enabled(&req.id, true) {
             tracing::info!(id = %req.id, "Server enabled");
+            Ok(Response::new(EnableServerResponse {
+                success: true,
+                error: String::new(),
+            }))
+        } else {
+            Ok(Response::new(EnableServerResponse {
+                success: false,
+                error: format!("Server with ID '{}' not found", req.id),
+            }))
         }
-        Ok(Response::new(EnableServerResponse {
-            success: true,
-            error: String::new(),
-        }))
     }
 
     async fn disable_server(
@@ -143,10 +148,15 @@ impl Deepslate for DeepslateService {
 
         if self.pool.update_enabled(&req.id, false) {
             tracing::info!(id = %req.id, "Server disabled");
+            Ok(Response::new(DisableServerResponse {
+                success: true,
+                error: String::new(),
+            }))
+        } else {
+            Ok(Response::new(DisableServerResponse {
+                success: false,
+                error: format!("Server with ID '{}' not found", req.id),
+            }))
         }
-        Ok(Response::new(DisableServerResponse {
-            success: true,
-            error: String::new(),
-        }))
     }
 }
