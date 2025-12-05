@@ -10,12 +10,19 @@ keywords = ["minecraft", "protocol"]
 categories = ["network-programming", "parsing"]
 publish = false
 
+[features]
+default = ["protocol-773"]
+protocol-773 = []  # 1.21.9/1.21.10
+protocol-765 = []  # 1.20.3/1.20.4
+
 [dependencies]
 bytes = "1"
 byteorder = "1"
 thiserror = "2"
 tokio = { version = "1", features = ["io-util"] }
 
+[dev-dependencies]
+tokio = { version = "1", features = ["io-util", "macros", "rt"] }
+
 [lints]
 workspace = true
-

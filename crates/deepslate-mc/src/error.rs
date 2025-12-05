@@ -44,6 +44,10 @@ pub enum ProtocolError {
     /// An invalid next state was received in a handshake.
     #[error("Invalid next state: {0}")]
     InvalidNextState(i32),
+
+    /// An unsupported protocol version was received.
+    #[error("Unsupported protocol version: {0}")]
+    UnsupportedProtocol(i32),
 }
 
 /// Result type alias using [`ProtocolError`].

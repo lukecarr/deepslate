@@ -1,4 +1,4 @@
-//! Status protocol packets (server list ping).
+//! Status protocol packets for protocol version 765 (1.20.3/1.20.4).
 //!
 //! The status protocol is used by clients to query server information
 //! without joining.
@@ -8,6 +8,7 @@ use bytes::BytesMut;
 
 use crate::codec::{RawPacket, read_string, write_string};
 use crate::error::{ProtocolError, Result};
+use crate::packets::traits::{ConnectionState, Packet};
 
 /// Maximum JSON response length (32 KiB).
 const MAX_JSON_LENGTH: usize = 32 * 1024;
@@ -18,17 +19,19 @@ const MAX_JSON_LENGTH: usize = 32 * 1024;
 #[derive(Debug, Clone, Default)]
 pub struct StatusRequest;
 
-impl StatusRequest {
-    /// Packet ID for Status Request.
-    pub const PACKET_ID: i32 = 0x00;
+impl Packet for StatusRequest {
+    const ID: i32 = 0x00;
+    const STATE: ConnectionState = ConnectionState::Status;
+}
 
+impl StatusRequest {
     /// Parse a status request from a raw packet.
     ///
     /// # Errors
     ///
     /// Returns an error if the packet ID is invalid.
     pub const fn from_raw(packet: &RawPacket) -> Result<Self> {
-        if packet.id != Self::PACKET_ID {
+        if packet.id != Self::ID {
             return Err(ProtocolError::InvalidPacketId(packet.id));
         }
         Ok(Self)
@@ -37,7 +40,7 @@ impl StatusRequest {
     /// Encode to a raw packet.
     #[must_use]
     pub fn to_raw(&self) -> RawPacket {
-        RawPacket::empty(Self::PACKET_ID)
+        RawPacket::empty(Self::ID)
     }
 }
 
@@ -50,10 +53,12 @@ pub struct StatusResponse {
     pub json: String,
 }
 
-impl StatusResponse {
-    /// Packet ID for Status Response.
-    pub const PACKET_ID: i32 = 0x00;
+impl Packet for StatusResponse {
+    const ID: i32 = 0x00;
+    const STATE: ConnectionState = ConnectionState::Status;
+}
 
+impl StatusResponse {
     /// Create a new status response with the given JSON.
     #[must_use]
     pub fn new(json: impl Into<String>) -> Self {
@@ -66,7 +71,7 @@ impl StatusResponse {
     ///
     /// Returns an error if the packet is malformed.
     pub fn from_raw(packet: &RawPacket) -> Result<Self> {
-        if packet.id != Self::PACKET_ID {
+        if packet.id != Self::ID {
             return Err(ProtocolError::InvalidPacketId(packet.id));
         }
 
@@ -81,7 +86,7 @@ impl StatusResponse {
     pub fn to_raw(&self) -> RawPacket {
         let mut payload = BytesMut::new();
         write_string(&mut payload, &self.json);
-        RawPacket::new(Self::PACKET_ID, payload)
+        RawPacket::new(Self::ID, payload)
     }
 }
 
@@ -94,10 +99,12 @@ pub struct Ping {
     pub payload: i64,
 }
 
-impl Ping {
-    /// Packet ID for Ping.
-    pub const PACKET_ID: i32 = 0x01;
+impl Packet for Ping {
+    const ID: i32 = 0x01;
+    const STATE: ConnectionState = ConnectionState::Status;
+}
 
+impl Ping {
     /// Create a new ping with the given payload.
     #[must_use]
     pub const fn new(payload: i64) -> Self {
@@ -110,7 +117,7 @@ impl Ping {
     ///
     /// Returns an error if the packet is malformed.
     pub fn from_raw(packet: &RawPacket) -> Result<Self> {
-        if packet.id != Self::PACKET_ID {
+        if packet.id != Self::ID {
             return Err(ProtocolError::InvalidPacketId(packet.id));
         }
 
@@ -132,7 +139,7 @@ impl Ping {
         // Writing to a Vec<u8> cursor never fails
         cursor.write_i64::<BigEndian>(self.payload).unwrap();
         payload.extend_from_slice(cursor.get_ref());
-        RawPacket::new(Self::PACKET_ID, payload)
+        RawPacket::new(Self::ID, payload)
     }
 }
 
@@ -145,10 +152,12 @@ pub struct Pong {
     pub payload: i64,
 }
 
-impl Pong {
-    /// Packet ID for Pong.
-    pub const PACKET_ID: i32 = 0x01;
+impl Packet for Pong {
+    const ID: i32 = 0x01;
+    const STATE: ConnectionState = ConnectionState::Status;
+}
 
+impl Pong {
     /// Create a new pong with the given payload.
     #[must_use]
     pub const fn new(payload: i64) -> Self {
@@ -161,7 +170,7 @@ impl Pong {
     ///
     /// Returns an error if the packet is malformed.
     pub fn from_raw(packet: &RawPacket) -> Result<Self> {
-        if packet.id != Self::PACKET_ID {
+        if packet.id != Self::ID {
             return Err(ProtocolError::InvalidPacketId(packet.id));
         }
 
@@ -183,7 +192,7 @@ impl Pong {
         // Writing to a Vec<u8> cursor never fails
         cursor.write_i64::<BigEndian>(self.payload).unwrap();
         payload.extend_from_slice(cursor.get_ref());
-        RawPacket::new(Self::PACKET_ID, payload)
+        RawPacket::new(Self::ID, payload)
     }
 }
 
@@ -196,7 +205,7 @@ mod tests {
         let original = StatusRequest;
         let raw = original.to_raw();
         let parsed = StatusRequest::from_raw(&raw).unwrap();
-        assert_eq!(raw.id, StatusRequest::PACKET_ID);
+        assert_eq!(raw.id, StatusRequest::ID);
         // StatusRequest has no fields to compare
         let _ = parsed;
     }
@@ -204,7 +213,7 @@ mod tests {
     #[test]
     fn test_status_response_roundtrip() {
         let json =
-            r#"{"version":{"name":"1.21.10","protocol":773},"players":{"max":100,"online":0}}"#;
+            r#"{"version":{"name":"1.20.4","protocol":765},"players":{"max":100,"online":0}}"#;
         let original = StatusResponse::new(json);
         let raw = original.to_raw();
         let parsed = StatusResponse::from_raw(&raw).unwrap();

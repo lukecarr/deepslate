@@ -28,7 +28,7 @@ COPY crates/deepslate/proto crates/deepslate/proto
 COPY crates/deepslate/src crates/deepslate/src
 COPY crates/deepslate-mc/src crates/deepslate-mc/src
 
-RUN cargo build --release --locked --target aarch64-unknown-linux-musl
+RUN cargo build --release --locked --target aarch64-unknown-linux-musl --features mc-1_21_10,mc-1_20_4
 
 FROM scratch
 

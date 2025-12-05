@@ -4,6 +4,7 @@ use std::net::SocketAddr;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicUsize, Ordering};
 
+use deepslate_mc::ProtocolVersion;
 use deepslate_mc::codec::{read_packet, write_packet};
 use deepslate_mc::packets::{Handshake, NextState, Ping, Pong, StatusRequest, StatusResponse};
 use serde_json::json;
@@ -12,12 +13,6 @@ use tokio::net::{TcpListener, TcpStream};
 use tracing::{Instrument, debug, error, info, info_span, warn};
 
 use crate::server::ServerPool;
-
-/// Current protocol version (1.21.10).
-const PROTOCOL_VERSION: i32 = 773;
-
-/// Protocol version name.
-const VERSION_NAME: &str = "1.21.10";
 
 /// Minecraft proxy that handles connections.
 pub struct Proxy {
@@ -96,14 +91,17 @@ impl Proxy {
                 "Received handshake"
             );
 
+            // Determine the protocol version (use client's version or fallback)
+            let version = ProtocolVersion::from_raw(handshake.protocol_version);
+
             match handshake.next_state {
                 NextState::Status => {
-                    if let Err(e) = self.handle_status(&mut client).await {
+                    if let Err(e) = self.handle_status(&mut client, version).await {
                         debug!("Status handler error: {e}");
                     }
                 }
                 NextState::Login | NextState::Transfer => {
-                    self.handle_login(&mut client, &handshake).await;
+                    self.handle_login(&mut client, &handshake, version).await;
                 }
             }
         }
@@ -129,6 +127,7 @@ impl Proxy {
     async fn handle_status(
         &self,
         client: &mut TcpStream,
+        version: Option<ProtocolVersion>,
     ) -> Result<(), deepslate_mc::ProtocolError> {
         // Read StatusRequest (should be empty, packet ID 0x00)
         let raw = read_packet(client).await?;
@@ -136,11 +135,21 @@ impl Proxy {
 
         debug!("Received status request");
 
+        // Use the client's protocol version if supported, otherwise use default
+        #[cfg(feature = "mc-1_21_10")]
+        let default_version = ProtocolVersion::V773;
+        #[cfg(all(not(feature = "mc-1_21_10"), feature = "mc-1_20_4"))]
+        let default_version = ProtocolVersion::V765;
+
+        let active_version = version.unwrap_or(default_version);
+        // Use the primary version name for the status response
+        let (version_name, protocol_version) = (active_version.name(), active_version.as_raw());
+
         // Build status response JSON
         let status_json = json!({
             "version": {
-                "name": VERSION_NAME,
-                "protocol": PROTOCOL_VERSION
+                "name": version_name,
+                "protocol": protocol_version
             },
             "players": {
                 "max": self.max_players,
@@ -174,7 +183,19 @@ impl Proxy {
     }
 
     /// Handle a login request by forwarding to an upstream server.
-    async fn handle_login(&self, client: &mut TcpStream, handshake: &Handshake) {
+    async fn handle_login(
+        &self,
+        client: &mut TcpStream,
+        handshake: &Handshake,
+        version: Option<ProtocolVersion>,
+    ) {
+        // Log if client is using an unsupported protocol version
+        if version.is_none() {
+            warn!(
+                protocol = handshake.protocol_version,
+                "Client using unsupported protocol version"
+            );
+        }
         // Select upstream server
         let Some(server) = self.pool.select() else {
             warn!("No available upstream servers");

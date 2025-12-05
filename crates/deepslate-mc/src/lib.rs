@@ -7,5 +7,7 @@ pub mod codec;
 pub mod error;
 pub mod packets;
 pub mod varint;
+pub mod version;
 
 pub use error::ProtocolError;
+pub use version::ProtocolVersion;

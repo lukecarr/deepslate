@@ -2,6 +2,8 @@
 //!
 //! The handshake is the first packet sent by the client and determines
 //! whether this is a status ping or a login attempt.
+//!
+//! This packet format is stable across all modern protocol versions.
 
 use byteorder::{BigEndian, ReadBytesExt};
 use bytes::{Buf, BufMut, BytesMut};
@@ -10,9 +12,7 @@ use crate::codec::{
     RawPacket, read_string, read_varint_from_buf, write_string, write_varint_to_buf,
 };
 use crate::error::{ProtocolError, Result};
-
-/// Handshake packet ID.
-pub const PACKET_ID: i32 = 0x00;
+use crate::packets::traits::{ConnectionState, Packet};
 
 /// Maximum server address length.
 const MAX_SERVER_ADDRESS: usize = 255;
@@ -56,6 +56,11 @@ pub struct Handshake {
     pub next_state: NextState,
 }
 
+impl Packet for Handshake {
+    const ID: i32 = 0x00;
+    const STATE: ConnectionState = ConnectionState::Handshaking;
+}
+
 impl Handshake {
     /// Parse a handshake from a raw packet.
     ///
@@ -63,7 +68,7 @@ impl Handshake {
     ///
     /// Returns an error if the packet is malformed.
     pub fn from_raw(packet: &RawPacket) -> Result<Self> {
-        if packet.id != PACKET_ID {
+        if packet.id != Self::ID {
             return Err(ProtocolError::InvalidPacketId(packet.id));
         }
 
@@ -93,7 +98,7 @@ impl Handshake {
         payload.put_u16(self.server_port);
         write_varint_to_buf(&mut payload, self.next_state as i32);
 
-        RawPacket::new(PACKET_ID, payload)
+        RawPacket::new(Self::ID, payload)
     }
 }
 

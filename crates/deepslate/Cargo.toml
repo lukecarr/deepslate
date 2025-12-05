@@ -12,8 +12,18 @@ keywords = ["minecraft", "proxy", "blue-green", "load-balancer"]
 categories = ["network-programming"]
 publish = false
 
+[features]
+default = ["mc-1_21_10"]
+# Protocol 773 (1.21.9/1.21.10)
+mc-1_21_10 = ["deepslate-mc/protocol-773"]  
+mc-1_21_9 = ["deepslate-mc/protocol-773"]
+
+# Protocol 765 (1.20.3/1.20.4)
+mc-1_20_4 = ["deepslate-mc/protocol-765"]
+mc-1_20_3 = ["deepslate-mc/protocol-765"]
+
 [dependencies]
-deepslate-mc = { path = "../deepslate-mc" }
+deepslate-mc = { path = "../deepslate-mc", default-features = false }
 tokio = { version = "1", features = ["net", "io-util", "rt-multi-thread", "macros"] }
 tracing = "0.1"
 tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
@@ -33,4 +43,3 @@ workspace = true
 
 [package.metadata.cargo-machete]
 ignored = ["prost", "tonic-prost"]
-
