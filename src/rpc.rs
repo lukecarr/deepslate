@@ -21,6 +21,7 @@ use proto::deepslate_server::Deepslate;
 use proto::{
     DeregisterServerRequest, DeregisterServerResponse, ListServersRequest, ListServersResponse,
     RegisterServerRequest, RegisterServerResponse, UpdateWeightRequest, UpdateWeightResponse,
+    EnableServerRequest, EnableServerResponse, DisableServerRequest, DisableServerResponse,
 };
 
 /// gRPC service implementation.
@@ -117,5 +118,35 @@ impl Deepslate for DeepslateService {
             .collect();
 
         Ok(Response::new(ListServersResponse { servers }))
+    }
+
+    async fn enable_server(
+        &self,
+        request: Request<EnableServerRequest>,
+    ) -> Result<Response<EnableServerResponse>, Status> {
+        let req = request.into_inner();
+
+        if self.pool.update_enabled(&req.id, true) {
+            tracing::info!(id = %req.id, "Server enabled");
+        }
+        Ok(Response::new(EnableServerResponse {
+            success: true,
+            error: String::new(),
+        }))
+    }
+
+    async fn disable_server(
+        &self,
+        request: Request<DisableServerRequest>,
+    ) -> Result<Response<DisableServerResponse>, Status> {
+        let req = request.into_inner();
+
+        if self.pool.update_enabled(&req.id, false) {
+            tracing::info!(id = %req.id, "Server disabled");
+        }
+        Ok(Response::new(DisableServerResponse {
+            success: true,
+            error: String::new(),
+        }))
     }
 }

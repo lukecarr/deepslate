@@ -88,14 +88,15 @@ impl ServerPool {
     }
 
     /// Update the enabled status of a server by ID.
-    /// Returns the old enabled status of the server.
-    pub fn update_enabled(&self, id: &str, enabled: bool) -> Option<bool> {
+    /// Returns `true` if the server was updated, `false` if the server was not found.
+    pub fn update_enabled(&self, id: &str, enabled: bool) -> bool {
         let mut servers = self.servers.write().unwrap();
-        servers.iter_mut().find(|s| s.id == id).map(|s| {
-            let old = s.enabled;
-            s.enabled = enabled;
-            old
-        })
+        if let Some(server) = servers.iter_mut().find(|s| s.id == id) {
+            server.enabled = enabled;
+            true
+        } else {
+            false
+        }
     }
 
     /// List all servers in the pool.
@@ -253,15 +254,15 @@ mod tests {
         pool.register(&Server::new("test", "127.0.0.1:25565", 100, true));
 
         // Disable the server
-        assert_eq!(pool.update_enabled("test", false), Some(true));
+        assert!(pool.update_enabled("test", false));
         assert!(!pool.list()[0].enabled);
 
         // Re-enable the server
-        assert_eq!(pool.update_enabled("test", true), Some(false));
+        assert!(pool.update_enabled("test", true));
         assert!(pool.list()[0].enabled);
 
         // Nonexistent server
-        assert_eq!(pool.update_enabled("nonexistent", false), None);
+        assert!(!pool.update_enabled("nonexistent", false));
     }
 
     #[test]

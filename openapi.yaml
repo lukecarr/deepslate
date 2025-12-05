@@ -157,6 +157,74 @@ paths:
                 success: false
                 error: "Server with ID 'blue' not found"
 
+  /servers/{id}/enable:
+    post:
+      summary: Enable a server
+      description: Enable a server in the pool
+      operationId: enableServer
+      tags:
+        - servers
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Unique server identifier
+          schema:
+            type: string
+          example: blue
+    responses:
+      "200":
+        description: Server enabled successfully
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApiResponse"
+            example:
+              success: true
+      "404":
+        description: Server not found
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApiResponse"
+            example:
+              success: false
+              error: "Server with ID 'blue' not found"
+  
+  /servers/{id}/disable:
+    post:
+      summary: Disable a server
+      description: Disable a server in the pool
+      operationId: disableServer
+      tags:
+        - servers
+      parameters:
+        - name: id
+          in: path
+          required: true
+          description: Unique server identifier
+          schema:
+            type: string
+          example: blue
+    responses:
+      "200":
+        description: Server disabled successfully
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApiResponse"
+            example:
+              success: true
+      "404":
+        description: Server not found
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/ApiResponse"
+            example:
+              success: false
+              error: "Server with ID 'blue' not found"
+
 components:
   schemas:
     Server:
@@ -229,6 +297,27 @@ components:
           minimum: 0
           description: New routing weight
           example: 50
+    
+    EnableServerRequest:
+      type: object
+      description: Request to enable a server
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the server
+
+    DisableServerRequest:
+      type: object
+      description: Request to disable a server
+      required:
+        - id
+      properties:
+        id:
+          type: string
+          description: Unique identifier for the server
+          example: blue
 
     ApiResponse:
       type: object
