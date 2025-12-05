@@ -39,18 +39,19 @@ async fn main() -> Result<(), BoxError> {
     // Parse configuration
     let grpc_enabled = env_bool("GRPC_ENABLED", true)?;
     let rest_enabled = env_bool("REST_ENABLED", true)?;
-    let grpc_addr = std::env::var("GRPC_ADDR").unwrap_or_else(|_| "0.0.0.0:25577".to_string());
-    let rest_addr = std::env::var("REST_ADDR").unwrap_or_else(|_| "0.0.0.0:25578".to_string());
-    let proxy_addr = std::env::var("ADDR").unwrap_or_else(|_| "0.0.0.0:25565".to_string());
 
     if !grpc_enabled {
         debug!("gRPC control plane disabled via GRPC_ENABLED=false");
     }
+    let grpc_addr = std::env::var("GRPC_ADDR").unwrap_or_else(|_| "0.0.0.0:25577".to_string());
+    
     if !rest_enabled {
         debug!("REST control plane disabled via REST_ENABLED=false");
     }
+    let rest_addr = std::env::var("REST_ADDR").unwrap_or_else(|_| "0.0.0.0:25578".to_string());
 
     // Pre-bind the proxy listener to fail fast on port conflicts
+    let proxy_addr = std::env::var("ADDR").unwrap_or_else(|_| "0.0.0.0:25565".to_string());
     let proxy_listener = TcpListener::bind(&proxy_addr).await?;
     info!("Proxy listening on {proxy_addr}");
 
