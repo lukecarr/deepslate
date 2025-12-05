@@ -330,7 +330,12 @@ mod tests {
         let pool = ServerPool::new();
         pool.register(&Server::new("enabled_high", "127.0.0.1:25565", 90, true));
         pool.register(&Server::new("enabled_low", "127.0.0.1:25566", 10, true));
-        pool.register(&Server::new("disabled_huge", "127.0.0.1:25567", 1000, false));
+        pool.register(&Server::new(
+            "disabled_huge",
+            "127.0.0.1:25567",
+            1000,
+            false,
+        ));
 
         let mut high_count = 0;
         let mut low_count = 0;

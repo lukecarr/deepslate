@@ -19,9 +19,9 @@ pub mod proto {
 
 use proto::deepslate_server::Deepslate;
 use proto::{
-    DeregisterServerRequest, DeregisterServerResponse, ListServersRequest, ListServersResponse,
+    DeregisterServerRequest, DeregisterServerResponse, DisableServerRequest, DisableServerResponse,
+    EnableServerRequest, EnableServerResponse, ListServersRequest, ListServersResponse,
     RegisterServerRequest, RegisterServerResponse, UpdateWeightRequest, UpdateWeightResponse,
-    EnableServerRequest, EnableServerResponse, DisableServerRequest, DisableServerResponse,
 };
 
 /// gRPC service implementation.
