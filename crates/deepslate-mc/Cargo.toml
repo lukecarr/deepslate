@@ -1,0 +1,21 @@
+[package]
+name = "deepslate-mc"
+version.workspace = true
+authors.workspace = true
+edition.workspace = true
+license.workspace = true
+repository.workspace = true
+description = "Minecraft protocol implementation for Deepslate."
+keywords = ["minecraft", "protocol"]
+categories = ["network-programming", "parsing"]
+publish = false
+
+[dependencies]
+bytes = "1"
+byteorder = "1"
+thiserror = "2"
+tokio = { version = "1", features = ["io-util"] }
+
+[lints]
+workspace = true
+

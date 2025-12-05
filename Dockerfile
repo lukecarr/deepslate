@@ -7,13 +7,27 @@ RUN apt-get update && \
     rm -rf /var/lib/apt/lists/* && \
     rustup target add aarch64-unknown-linux-musl
 
+# Copy workspace root files
 COPY Cargo.toml Cargo.lock ./
-RUN mkdir src && echo "fn main() {}" > src/main.rs && \
+
+# Create crate directory structure for dependency caching
+RUN mkdir -p crates/deepslate/src crates/deepslate-mc/src/packets
+
+# Copy crate Cargo.toml files
+COPY crates/deepslate/Cargo.toml crates/deepslate/
+COPY crates/deepslate-mc/Cargo.toml crates/deepslate-mc/
+
+# Create dummy source files for dependency fetching
+RUN echo "fn main() {}" > crates/deepslate/src/main.rs && \
+    echo "" > crates/deepslate-mc/src/lib.rs && \
     cargo fetch --locked --target aarch64-unknown-linux-musl
 
-COPY build.rs ./
-COPY proto ./proto
-COPY src ./src
+# Copy actual source files
+COPY crates/deepslate/build.rs crates/deepslate/
+COPY crates/deepslate/proto crates/deepslate/proto
+COPY crates/deepslate/src crates/deepslate/src
+COPY crates/deepslate-mc/src crates/deepslate-mc/src
+
 RUN cargo build --release --locked --target aarch64-unknown-linux-musl
 
 FROM scratch

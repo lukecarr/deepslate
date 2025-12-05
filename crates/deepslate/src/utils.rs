@@ -31,6 +31,22 @@ pub fn env_bool(name: &str, default: bool) -> Result<bool, EnvError> {
     }
 }
 
+/// Parse an environment variable as a u32, with a default value.
+///
+/// # Errors
+///
+/// Returns an error if the environment variable is set to an invalid value,
+/// or if the value contains invalid Unicode.
+pub fn env_u32(name: &str, default: u32) -> Result<u32, EnvError> {
+    let value = match env::var(name) {
+        Ok(v) => v,
+        Err(env::VarError::NotPresent) => return Ok(default),
+        Err(e) => return Err(format!("{name}: {e}").into()),
+    };
+
+    value.parse().map_err(|e| format!("{name}: {e}").into())
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

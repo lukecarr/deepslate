@@ -1,4 +1,4 @@
-//! Deepslate: L4 load balancer for Minecraft proxy server blue-green deployments
+//! Deepslate: A Minecraft proxy server.
 
 mod api;
 mod proxy;
@@ -16,7 +16,7 @@ use crate::proxy::Proxy;
 use crate::rpc::DeepslateService;
 use crate::rpc::proto::deepslate_server::DeepslateServer;
 use crate::server::{Server, ServerPool};
-use crate::utils::env_bool;
+use crate::utils::{env_bool, env_u32};
 
 type BoxError = Box<dyn std::error::Error + Send + Sync>;
 
@@ -62,8 +62,15 @@ async fn main() -> Result<(), BoxError> {
     let proxy_listener = TcpListener::bind(&proxy_addr).await?;
     info!(addr = %proxy_addr, "Proxy listening");
 
-    // Create the proxy
-    let proxy = Arc::new(Proxy::new(Arc::clone(&pool)));
+    // Create the proxy with configuration
+    let motd = std::env::var("MOTD").unwrap_or_else(|_| "A Deepslate Proxy Server".to_string());
+    let max_players = env_u32("MAX_PLAYERS", 100)?;
+
+    let proxy = Arc::new(
+        Proxy::new(Arc::clone(&pool))
+            .with_motd(motd)
+            .with_max_players(max_players),
+    );
 
     // Run all servers concurrently - exit if any fails
     tokio::select! {
