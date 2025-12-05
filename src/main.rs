@@ -22,11 +22,24 @@ type BoxError = Box<dyn std::error::Error + Send + Sync>;
 
 #[tokio::main]
 async fn main() -> Result<(), BoxError> {
-    tracing_subscriber::fmt()
-        .with_env_filter(tracing_subscriber::EnvFilter::new(
-            std::env::var("LOG_LEVEL").unwrap_or_else(|_| "info".to_string()),
-        ))
-        .init();
+    let log_filter = tracing_subscriber::EnvFilter::new(
+        std::env::var("LOG_LEVEL").unwrap_or_else(|_| "info".to_string()),
+    );
+
+    let json_logging = std::env::var("LOG_JSON")
+        .map(|v| matches!(v.to_lowercase().as_str(), "true" | "1"))
+        .unwrap_or(false);
+
+    if json_logging {
+        tracing_subscriber::fmt()
+            .json()
+            .with_env_filter(log_filter)
+            .init();
+    } else {
+        tracing_subscriber::fmt()
+            .with_env_filter(log_filter)
+            .init();
+    }
 
     // Create server pool
     let pool = Arc::new(ServerPool::new());

@@ -53,8 +53,10 @@ impl ServerPool {
         drop(servers);
 
         info!(
-            "Registered server: id = {}, addr = {}, weight = {}",
-            server.id, server.addr, server.weight
+            id = server.id,
+            addr = server.addr,
+            weight = server.weight,
+            "Registered server"
         );
 
         true

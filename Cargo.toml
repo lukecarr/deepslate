@@ -18,7 +18,7 @@ members = ["."]
 [dependencies]
 tokio = { version = "1", features = ["net", "io-util", "rt-multi-thread", "macros"] }
 tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter"] }
+tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
 rand = "0.9"
 tonic = "0.14"
 tonic-prost = "0.14"
