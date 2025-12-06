@@ -212,6 +212,7 @@ impl Proxy {
     }
 
     /// Handle a login request with online-mode authentication and Velocity forwarding.
+    #[allow(clippy::too_many_lines)]
     async fn handle_login(
         &self,
         client: &mut TcpStream,
