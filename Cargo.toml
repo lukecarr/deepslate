@@ -1,40 +1,15 @@
-[package]
-name = "deepslate"
+[workspace]
+resolver = "2"
+members = ["crates/*"]
+
+[workspace.package]
 version = "0.1.0"
 authors = ["Luke Carr <me@carr.sh>"]
 edition = "2024"
-description = "Programmable L4 load balancer for Minecraft proxy servers."
-readme = "https://github.com/lukecarr/deepslate/blob/main/README.md"
-homepage = "https://github.com/lukecarr/deepslate"
-repository = "https://github.com/lukecarr/deepslate"
 license = "MIT OR Apache-2.0"
-keywords = ["minecraft", "proxy", "blue-green", "load-balancer", "l4"]
-categories = ["network-programming"]
-publish = false
+repository = "https://github.com/lukecarr/deepslate"
 
-[workspace]
-members = ["."]
-
-[dependencies]
-tokio = { version = "1", features = ["net", "io-util", "rt-multi-thread", "macros"] }
-tracing = "0.1"
-tracing-subscriber = { version = "0.3", features = ["env-filter", "json"] }
-rand = "0.9"
-tonic = "0.14"
-tonic-prost = "0.14"
-prost = "0.14"
-axum = "0.8"
-serde = { version = "1", features = ["derive"] }
-
-[build-dependencies]
-tonic-prost-build = "0.14"
-
-[profile.release]
-lto = true
-strip = true
-codegen-units = 1
-
-[lints.clippy]
+[workspace.lints.clippy]
 all = "warn"
 pedantic = "warn"
 nursery = "warn"
@@ -42,5 +17,7 @@ cargo = "warn"
 # Allow multiple crate versions: this is handled by cargo-deny.
 multiple_crate_versions = { level = "allow", priority = 1 }
 
-[package.metadata.cargo-machete]
-ignored = ["prost", "tonic-prost"]
+[profile.release]
+lto = true
+strip = true
+codegen-units = 1

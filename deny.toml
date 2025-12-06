@@ -7,7 +7,10 @@ no-default-features = false
 feature-depth = 1
 
 [advisories]
-ignore = []
+ignore = [
+    # RUSTSEC-2023-0071: rand crate security vulnerability, being fixed in upcoming 1.0 release
+    "RUSTSEC-2023-0071",
+]
 
 [licenses]
 allow = [
@@ -16,6 +19,8 @@ allow = [
     "Apache-2.0 WITH LLVM-exception",
     "Unicode-3.0",
     "BSD-3-Clause",
+    "ISC",
+    "CDLA-Permissive-2.0",
 ]
 confidence-threshold = 0.8
 exceptions = []
