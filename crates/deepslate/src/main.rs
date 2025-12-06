@@ -1,10 +1,12 @@
 //! Deepslate: A Minecraft proxy server.
 
 mod api;
+mod auth;
 mod proxy;
 mod rpc;
 mod server;
 mod utils;
+mod velocity;
 
 use std::sync::Arc;
 
@@ -40,8 +42,7 @@ async fn main() -> Result<(), BoxError> {
 
     // Register default servers (for backwards compatibility during development)
     // In production, servers would register themselves via the control plane
-    pool.register(&Server::new("blue", "blue:25565", 100, true));
-    pool.register(&Server::new("green", "green:25565", 100, true));
+    pool.register(&Server::new("minecraft", "minecraft:25565", 100, true));
 
     // Parse configuration
     let grpc_enabled = env_bool("GRPC_ENABLED", true)?;
@@ -66,11 +67,22 @@ async fn main() -> Result<(), BoxError> {
     let motd = std::env::var("MOTD").unwrap_or_else(|_| "A Deepslate Proxy Server".to_string());
     let max_players = env_u32("MAX_PLAYERS", 100)?;
 
-    let proxy = Arc::new(
-        Proxy::new(Arc::clone(&pool))
-            .with_motd(motd)
-            .with_max_players(max_players),
-    );
+    // Velocity forwarding secret (required for online-mode authentication)
+    let velocity_secret = std::env::var("VELOCITY_SECRET").ok();
+    if velocity_secret.is_none() {
+        tracing::warn!("VELOCITY_SECRET not set - online-mode authentication will fail");
+    }
+
+    let mut proxy = Proxy::new(Arc::clone(&pool))
+        .with_motd(motd)
+        .with_max_players(max_players);
+
+    if let Some(secret) = velocity_secret {
+        proxy = proxy.with_velocity_secret(secret.into_bytes());
+        info!("Velocity forwarding enabled");
+    }
+
+    let proxy = Arc::new(proxy);
 
     // Run all servers concurrently - exit if any fails
     tokio::select! {

@@ -1,7 +1,8 @@
-//! Status protocol packets for protocol version 765 (1.20.3/1.20.4).
+//! Status protocol packets.
 //!
 //! The status protocol is used by clients to query server information
-//! without joining.
+//! without joining. This packet format is stable across all supported
+//! protocol versions.
 
 use byteorder::{BigEndian, ReadBytesExt, WriteBytesExt};
 use bytes::BytesMut;
@@ -213,7 +214,7 @@ mod tests {
     #[test]
     fn test_status_response_roundtrip() {
         let json =
-            r#"{"version":{"name":"1.20.4","protocol":765},"players":{"max":100,"online":0}}"#;
+            r#"{"version":{"name":"1.21.10","protocol":773},"players":{"max":100,"online":0}}"#;
         let original = StatusResponse::new(json);
         let raw = original.to_raw();
         let parsed = StatusResponse::from_raw(&raw).unwrap();

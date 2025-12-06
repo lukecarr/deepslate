@@ -5,31 +5,13 @@ services:
       dockerfile: Dockerfile
     environment:
       - LOG_LEVEL=debug
+      - VELOCITY_SECRET=deepslate
     ports:
       - "25565:25565"
       - "25577:25577"
       - "25578:25578"
     depends_on:
-      - blue
-      - green
-
-  blue:
-    build:
-      context: .
-      dockerfile: velocity.Dockerfile
-      args:
-        VELOCITY_CONFIG: blue.velocity.toml
-    expose:
-      - 25565
-
-  green:
-    build:
-      context: .
-      dockerfile: velocity.Dockerfile
-      args:
-        VELOCITY_CONFIG: green.velocity.toml
-    expose:
-      - 25565
+      - minecraft
 
   minecraft:
     image: itzg/minecraft-server:latest
@@ -43,6 +25,7 @@ services:
       - OPS=Qubitl
     volumes:
       - minecraft_data:/data
+      - ./paper-global.yml:/configs/paper-global.yml
 
 volumes:
   minecraft_data: {}
